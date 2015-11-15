@@ -1,15 +1,10 @@
 var Grids = require('../src/gridregions.js');
-var assert = require('assert');
+var assert = require('chai').assert;
 
 describe('getAbstractPath', function() {
-    it.skip('should get a path for a 20x20 grid with no obstacles',function() {
-        //assert.equal
+    it('should get a path for a 20x20 grid with no obstacles',function() {
         var grid = new Grids(20);
-        // grid.addEntity({}, { collidable: true }, 9, 0);
-        ///
-        // grid.setImpassableTile(9, 5);
         var list = grid.getAbstractPath(0,0,15,15);
-
         assert.equal(6, list.length);
         assert.equal(0, list[0].x);
         assert.equal(0, list[0].y);
@@ -18,10 +13,11 @@ describe('getAbstractPath', function() {
         assert.equal(15, list[5].x);
         assert.equal(15, list[5].y);
     });
-    it.skip('should get a path for a 20x20 grid with an obstacle',function() {
+    it('should get a path for a 20x20 grid with obstacles',function() {
         var grid = new Grids(20);
-        var list = grid.getAbstractPath(0,0,0,15);
-        // grid.setImpassableTile(9, 5);
+        var list = grid.getAbstractPath(0,0,15,15);
+        grid.setImpassableTile(9, 0);
+        grid.setImpassableTile(0, 9);
         assert.equal(6, list.length);
         assert.equal(0, list[0].x);
         assert.equal(0, list[0].y);
@@ -31,13 +27,29 @@ describe('getAbstractPath', function() {
         assert.equal(15, list[5].y);
     });
 });
+describe('entities', function() {
+    it('Find a nearby entity in another region',function() {
+        var grid = new Grids(20, {diagonals: true});
+        var data = { type: 'banana' };
+        grid.addEntity({ type: 'monkey' }, { collidable: true }, 0, 0);
+        grid.addEntity(data, { collidable: false }, 15, 15);
+        var entity = grid.getNearbyEntity(0, 0, {type: 'banana'});
+        assert.equal(entity.data, data);
+    });
+    it('Find a nearby entity in the same region',function() {
+        var grid = new Grids(20, {diagonals: true});
+        var data = { type: 'banana' };
+        grid.addEntity(data, { collidable: false }, 0, 0);
+        var entity = grid.getNearbyEntity(0, 0, {type: 'banana'});
+        assert.equal(entity.data, data);
+    });
+    it('Fail to find a non-existent entity',function() {
+        var grid = new Grids(20, {diagonals: true});
+        var entity = grid.getNearbyEntity(0, 0, {type: 'banana'});
+        assert.isUndefined(entity);
+    });
+});
 
-var grid = new Grids(20, {diagonals: true});
-grid.addEntity({ type: 'monkey' }, { collidable: true }, 0, 0);
-grid.addEntity({ type: 'banana' }, { collidable: false }, 15, 15);
-
-var point = grid.getNearbyEntity(0, 0, {type: 'banana'});
-console.log(point);
 
 //        var grid = new Grids(20, {diagonals: true});
 //         // grid.addEntity({}, { collidable: true }, 9, 0);

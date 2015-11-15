@@ -1,0 +1,5 @@
+node_modules
+bower_components
+static
+.DS_Store
+client/vendor

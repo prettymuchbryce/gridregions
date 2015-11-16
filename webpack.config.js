@@ -1,19 +1,41 @@
+var webpack = require('webpack');
+var minify = process.argv.indexOf('--minify') === -1 ? false : true;
+var demo = process.argv.indexOf('--demo') === -1 ? false : true;
+var plugins = [];
+
+if (minify) {
+    plugins.push(new webpack.optimize.UglifyJsPlugin())
+}
+
+if (demo) {
+    module.exports = {
+        entry: './src/gridregions.js',
+        output: {
+            path: './demo',
+            filename: 'app.js'
+        }
+        module: {
+            loaders: [
+                { test: /\.js$/, loader: 'babel-loader' },
+            ]
+        },
+        resolve: {
+            extensions: ['', '.js', '.json', '.jsx']
+        },
+        plugins: plugins
+    };
+    return;
+}
+
 module.exports = {
-    entry: './client/src/app.js',
-    output: {
-        path: './static',
-        filename: 'js/all.js'
-    },
+    entry: './src/gridregions.js',
     module: {
         loaders: [
-            { test: /\.jsx?$/, loader: 'babel-loader' },
-            { test: /\.less$/, loader: 'style-loader!css-loader!less-loader' },
-            { test: /\.css$/, loader: 'style-loader!css-loader' },
-            // inline base64 URLs for <=8k images, direct URLs for the rest
-            { test: /\.(png|jpg)$/, loader: 'url-loader?limit=8192'}
+            { test: /\.js$/, loader: 'babel-loader' },
         ]
     },
     resolve: {
         extensions: ['', '.js', '.json', '.jsx']
-    }
+    },
+    plugins: plugins
 };

@@ -1,22 +1,32 @@
+"use strict";
+
 var EasyStar = require('easystarjs');
 var PriorityQueue = EasyStar.PriorityQueue;
 
-var SIDE_TOP = 0;
-var SIDE_RIGHT = 1;
-var SIDE_BOTTOM = 2;
-var SIDE_LEFT = 3;
-var INVERSE_SIDE_MAP = {
+const TRANSITION_CONSTANT = 6;
+
+const SIDE_TOP = 0;
+const SIDE_RIGHT = 1;
+const SIDE_BOTTOM = 2;
+const SIDE_LEFT = 3;
+const INVERSE_SIDE_MAP = {
     1: SIDE_LEFT,
     3: SIDE_RIGHT,
     2: SIDE_TOP,
     0: SIDE_BOTTOM
 };
 
-var TRANSITION_CONSTANT = 6;
-var idCounter = 0;
+let idCounter = 0;
 
+/**
+* GridRegions constructor.
+*
+* @param {number} gridSize - The width and height of the grid. Must be divisible by regionSize.
+* @param {Object} options - An object containing options.
+* @param {number} options.regionSize - The size of individual regions. Defaults to 10.
+**/
 var GridRegions = function(gridSize, options) {
-    var regionSize = 10;
+    var regionSize = 10 || options.regionSize;
     var regionMap = [];
     var entityMap = {};
 
@@ -53,6 +63,17 @@ var GridRegions = function(gridSize, options) {
         }
     }
 
+    /**
+    * Adds an entity to the board.
+    *
+    * @param {Object} entity - An object which represents an entity in the game.
+    * @param {Object} options - An object containing options.
+    * @param {boolean} options.collidable - Whether or not the entity is collidable on the board.
+    * @param {number} x - The X position to place the entity.
+    * @param {number} y - The Y position to place the entity.
+    *
+    * @return {number} A unique id representing this entity within GridRegions
+    **/
     this.addEntity = function(entity, options, x, y) {
         var region = getRegion(x, y);
         var localX = x - region.x * regionSize;
@@ -69,6 +90,13 @@ var GridRegions = function(gridSize, options) {
         return entity.id;
     };
 
+    /**
+    * Moves an existing entity on the board.
+    *
+    * @param {number} id - The unique ID of the entity.
+    * @param {number} newX - The X position to move the entity to.
+    * @param {number} newY - The Y position to move the entity to.
+    **/
     this.moveEntity = function(id, newX, newY) {
         if (!isWithinBounds(newX, newY)) {
             throw new Error("Can't move entity. newX and newY are out of bounds.");
@@ -99,9 +127,13 @@ var GridRegions = function(gridSize, options) {
                 recomputeAllRegionLinks(newRegion);
             }
         }
-
     };
 
+    /**
+    * Removes an entity from the board
+    *
+    * @param {number} id - The ID of the entity to remove.
+    **/
     this.removeEntity = function(id) {
         var entity = entityMap[id];
 
@@ -119,6 +151,29 @@ var GridRegions = function(gridSize, options) {
         delete entityMap[id];
     };
 
+    /**
+    * Returns the internal representation of the entity.
+    *
+    * @param {number} id - The ID of the entity to get.
+    *
+    * @param {Object} The entity, or undefined if it does not exist.
+    **/
+    this.getEntity = function(id) {
+        return entityMap[id];
+    }
+
+    /**
+    * Returns an entity nearby the position specified. Returns the first
+    * entity found by region. Not necessarily the closest entity.
+    * This is accomplished by performing a BFS on the abstract graph.
+    *
+    * @param {number} x - The x position to start the search.
+    * @param {number} y - The y position to start the search.
+    * @param {Object} query - A query for the search. This will match any
+    * first-level properties on the entity object provided to CreateEntity.
+    *
+    * @return {Object} An object representing the entity, or undefined if not found.
+    **/
     this.getNearbyEntity = function(x, y, query) {
         if (!isWithinBounds(x, y)) {
             throw new Error("Can't get nearby entity. x and y are out of bounds.");
@@ -137,7 +192,7 @@ var GridRegions = function(gridSize, options) {
                 if (candidateRegion.entities[i].doesMatchQuery(query)) {
                     if (doesAccessiblePathExist(candidateRegion, candidate.node.localX, candidate.node.localY, candidateRegion.entities[i].localX, candidateRegion.entities[i].localY)) {
                         var entity = candidateRegion.entities[i];
-                        return {x: entity.x, y: entity.y, id: entity.id, data: entity.data};
+                        return entity.getPublic();
                     }
                 }
             }
@@ -155,6 +210,12 @@ var GridRegions = function(gridSize, options) {
         return undefined;
     };
 
+    /**
+    * Sets a tile as "impassable" or "collidable".
+    *
+    * @param {number} x - The X position of the tile to make impassable.
+    * @param {number} y - The Y Position of the tile to make impassable.
+    **/
     this.setImpassableTile = function(x, y) {
         if (!isWithinBounds(x, y)) {
             throw new Error("Can't set impassable tile. x and y are out of bounds.");
@@ -169,6 +230,12 @@ var GridRegions = function(gridSize, options) {
         recomputeAllRegionLinks(region);
     };
 
+    /**
+    * Sets a tile as "passable" 
+    *
+    * @param {number} x - The X position of the tile to make passable.
+    * @param {number} y - The Y Position of the tile to make passable.
+    **/
     this.unsetImpassableTile = function(x, y) {
         if (!isWithinBounds(x, y)) {
             throw new Error("Can't unset impassable tile. x and y are out of bounds.");
@@ -183,6 +250,26 @@ var GridRegions = function(gridSize, options) {
         recomputeAllRegionLinks(region);
     };
 
+    /**
+    * Retuns a full specific path from the start position to the end position.
+    * This is accomplished by finding a path from the start X to a region node,
+    * then searching the abstract graph for a path to the target region. Once
+    * the target region is found, a path is computed from the end region node
+    * to the desired end point. If smoothing is true, an extra step is added to
+    * smooth the path.
+    *
+    * Smoothing is applied by taking each node in the solution and checking
+    * whether or not we can reach a subsequent node in the path in a straight line.
+    * If so - This straight path replaces the previous sequence between the nodes.
+    *
+    * @param {number} startX - The X position to start the search
+    * @param {number} startY - The Y position to start the search
+    * @param {number} endX - The X position to end the search
+    * @param {number} endY - The Y position to end the search
+    * @param {boolean} smoothing - Whether or not to apply smoothing.
+    *
+    * @return {Array} - The full path, or undefined if it does not exist.
+    **/
     this.getFullPath = function(startX, startY, endX, endY, smoothing) {
         if (!isWithinBounds(startX, startY) || !isWithinBounds(endX, endY)) {
             throw new Error("Can't get full path. start x or y are out of bounds.");
@@ -220,7 +307,7 @@ var GridRegions = function(gridSize, options) {
                 }
                 pf.findPath(start.x % regionSize, start.y % regionSize, end.x % regionSize, end.y % regionSize, function(p) {
                     if (!p) {
-                        throw new Error("An unexpected error has occurred with gamegamegrid.js. Please report this issue to github.com/prettymuchbryce/gamegridjs")
+                        throw new Error("An unexpected error has occurred with GridRegions. Please report this issue to github.com/prettymuchbryce/gridregions")
                     }
 
                     // Convert coordinates to global space
@@ -244,6 +331,21 @@ var GridRegions = function(gridSize, options) {
         return fullPath;
     };
 
+    /**
+    * Retuns an abstract path from the start region to the end region using
+    * region nodes. An abstract path typically consists of:
+    * 
+    * 1. The start node.
+    * 2. A list of region nodes.
+    * 3. The end node
+    *
+    * @param {number} startX - The X position to start the search
+    * @param {number} startY - The Y position to start the search
+    * @param {number} endX - The X position to end the search
+    * @param {number} endY - The Y position to end the search
+    *
+    * @return {Array} - The abstract path, or undefined if it does not exist.
+    */
     this.getAbstractPath = function(startX, startY, endX, endY) {
         if (!isWithinBounds(startX, startY) || !isWithinBounds(endX, endY)) {
             throw new Error("Can't get abstract path. start x or y are out of bounds.");
@@ -659,7 +761,7 @@ var GridRegions = function(gridSize, options) {
             }
         }
         return path;
-    };
+    }
 
     function getEasyStarForRegion(region) {
         var pf = new EasyStar.js();
@@ -697,6 +799,16 @@ var Entity = function(data, x, y, localX, localY, collidable) {
     this.collidable = collidable;
     this.id = idCounter;
     idCounter++;
+
+    this.getPublic = function() {
+        return {
+            data: data,
+            x: JSON.parse(JSON.stringify(this.x)),
+            y: JSON.parse(JSON.stringify(this.y)),
+            collidable: JSON.parse(JSON.stringify(this.collidable)),
+            id: JSON.parse(JSON.stringify(this.id))
+        }
+    };
 
     this.doesMatchQuery = function(query) {
         for (var key in query) {

@@ -10,3 +10,6 @@ build:
 
 demo:
 	node ./node_modules/http-server/bin/http-server ./demo/static
+
+watch-demo:
+	webpack --demo --watch --colors

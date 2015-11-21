@@ -29,7 +29,7 @@ if (demo) {
             ]
         },
         resolve: {
-            extensions: ['', '.js', '.json', '.jsx', '.css', '.less']
+            extensions: ['', '.js', '.json', '.jsx']
         },
         plugins: plugins
     };

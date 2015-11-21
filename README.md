@@ -173,11 +173,11 @@ instance.getAbstractPath(startX, startY, endX, endY);
 
 GridRegions is in Alpha. There are probably bugs. Test coverage needs to be extended, and benchmarks need to be written. An interactive demo would probably be helpful in explaining the concept.
 
-__Running Tests___
-`make test`
+__Running Tests__
+```make test```
 
 __Building__
-`make build`
+```make build```
 
 ### License
 
@@ -185,6 +185,6 @@ MIT
 
 ### References
 
-[https://webdocs.cs.ualberta.ca/~mmueller/ps/hpastar.pdf](Near Optimal Hierarchical Path-Finding - A. Botea, M. Müller, J. Schaeffer)
+[Near Optimal Hierarchical Path-Finding - A. Botea, M. Müller, J. Schaeffer](https://webdocs.cs.ualberta.ca/~mmueller/ps/hpastar.pdf)
 
-[https://www.youtube.com/watch?v=RMBQn_sg7DA](Region System - Rimworld)
+[Region System - Rimworld](https://www.youtube.com/watch?v=RMBQn_sg7DA)

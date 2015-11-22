@@ -18,7 +18,7 @@ This is accomplished by breaking the search space up into "regions" (default 10x
 
 3. Using abstract path information, we can very quickly start moving an entity toward it's destination before we have built the full path.
 
-4. Due to the abstract path, it is technically feasible to spread out the individual A* calculations between regions to multiple processes cores which could significantly speed up search time.
+4. Due to the abstract path, it is technically feasible to spread out the individual A* calculations between regions to multiple processor cores which could significantly speed up search time.
 
 <sup>1</sup> Faster than A* alone is a bold claim, and I would like to write benchmarks to compare the performance before I say with certainty that it is faster.
 

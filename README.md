@@ -12,9 +12,15 @@ This is accomplished by breaking the search space up into "regions" (default 10x
 
 ### Why not use a traditional pathfinding algorithm alone (like A*) ?
 
-GridRegions is faster than A* in very large search spaces. This is due to the way GridRegions precomputes the relationships between regions.
+1. GridRegions is probably<sup>1</sup> faster than A* in very large search spaces. This is due to the way GridRegions precomputes the relationships between regions.
 
-Additionally, we use this pre-computed information to quickly find nearby game information in the grid which we refer to as "entities". With traditional A* we may have a list of all entities we are interested in, and compute paths to the them in order to find the closest (shortest path). This becomes more computationally expensive as the number of entities grows. With GridRegions, we can simply perform a BFS on the abstract graph, and return the first entity that we find during the search. 
+2. We use this pre-computed information to quickly find nearby game information in the grid which we refer to as "entities". With traditional A* we may have a list of all entities we are interested in, and compute paths to the them in order to find the closest (shortest path). This becomes more computationally expensive as the number of entities grows. With GridRegions, we can simply perform a BFS on the abstract graph, and return the first entity that we find during the search. 
+
+3. Using abstract path information, we can very quickly start moving an entity toward it's destination before we have built the full path.
+
+4. Due to the abstract path, it is technically feasible to spread out the individual A* calculations between regions to multiple processes cores which could significantly speed up search time.
+
+<sup>1</sup>: Faster than A* alone is a bold claim, and I would like to write benchmarks to compare the performance before I say with certainty that it is faster.
 
 ### Usage
 
